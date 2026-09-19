@@ -1,0 +1,1022 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <style>
+      :root {
+        --ink: #1f1f1f;
+        --muted: #5f6368;
+        --line: #dedede;
+        --soft: #f8f8f8;
+        --login: #956526;
+        --login-dark: #7c501b;
+        --success: #278d4b;
+        --success-dark: #1f773e;
+        --focus: #2457a6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: #fff;
+        color: var(--ink);
+        font:
+          16px/1.45 Arial,
+          sans-serif;
+        margin: 0;
+        padding: 30px 34px 26px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        min-height: 46px;
+        padding: 10px 20px;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid rgba(36, 87, 166, 0.28);
+        outline-offset: 2px;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: 0.62;
+      }
+      .view[hidden],
+      .period-field[hidden] {
+        display: none !important;
+      }
+      .eyebrow {
+        color: var(--login);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0 0 7px;
+        text-transform: uppercase;
+      }
+      .view-header {
+        border-bottom: 1px solid var(--line);
+        margin: 0 -34px 26px;
+        padding: 0 34px 22px;
+      }
+      h1 {
+        font-size: 30px;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        margin: 0;
+      }
+      .subtitle {
+        color: #3c4043;
+        font-size: 17px;
+        margin: 10px 0 0;
+      }
+      .form-grid,
+      .captcha-grid,
+      .query-grid,
+      .period-controls {
+        display: grid;
+        gap: 20px 24px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .captcha-grid {
+        align-items: end;
+        margin-top: 22px;
+      }
+      .form-field {
+        min-width: 0;
+      }
+      label,
+      .section-label {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .required {
+        color: #d93025;
+      }
+      input:not([type="checkbox"]):not([type="radio"]),
+      select {
+        background: #fff;
+        border: 1px solid #d5d5d5;
+        border-radius: 9px;
+        color: var(--ink);
+        min-height: 48px;
+        padding: 10px 13px;
+        width: 100%;
+      }
+      input::placeholder {
+        color: #8a8a8a;
+      }
+      .captcha-box {
+        align-items: center;
+        background: #f2f2f2;
+        border: 1px solid #ddd;
+        border-radius: 9px;
+        display: flex;
+        min-height: 62px;
+        overflow: hidden;
+      }
+      #captchaImage {
+        flex: 1;
+        height: 54px;
+        min-width: 0;
+        object-fit: contain;
+        padding: 5px 8px;
+      }
+      .refresh-button {
+        background: transparent;
+        border-left: 1px solid #d8d8d8;
+        border-radius: 0;
+        color: var(--login);
+        min-height: 62px;
+        padding: 8px 15px;
+      }
+      .login-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 24px;
+      }
+      .login-button {
+        background: var(--login);
+        color: #fff;
+        min-width: 168px;
+      }
+      .login-button:hover {
+        background: var(--login-dark);
+      }
+      .privacy-note {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 18px 0 0;
+      }
+      #status {
+        border-radius: 9px;
+        display: none;
+        font-size: 14px;
+        margin: 0 0 22px;
+        padding: 12px 14px;
+        white-space: pre-wrap;
+      }
+      #status.is-visible {
+        display: block;
+      }
+      #status.is-error {
+        background: #fce8e6;
+        color: #a50e0e;
+      }
+      #status.is-success {
+        background: #e6f4ea;
+        color: #137333;
+      }
+      #status.is-info {
+        background: #f1f3f4;
+        color: #3c4043;
+      }
+      .query-header {
+        align-items: flex-start;
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+      }
+      .query-header .eyebrow {
+        color: var(--success);
+      }
+      .signed-in {
+        color: var(--success);
+        font-size: 14px;
+        font-weight: 700;
+        margin: 8px 0 0;
+      }
+      .text-button {
+        background: transparent;
+        color: #4d4d4d;
+        min-height: auto;
+        padding: 5px 0;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .selection-group {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        display: flex;
+        gap: 24px;
+        min-height: 78px;
+        padding: 17px 20px;
+      }
+      .choice {
+        align-items: center;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 17px;
+        font-weight: 700;
+        gap: 10px;
+        margin: 0;
+        white-space: nowrap;
+      }
+      .choice input {
+        accent-color: var(--success);
+        height: 22px;
+        margin: 0;
+        width: 22px;
+      }
+      .period-controls {
+        margin-top: 24px;
+      }
+      .detail-option {
+        align-items: flex-start;
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        gap: 14px;
+        margin-top: 26px;
+        padding: 19px 20px;
+      }
+      .detail-option input {
+        accent-color: var(--success);
+        height: 23px;
+        margin: 2px 0 0;
+        min-width: 23px;
+        width: 23px;
+      }
+      .detail-title {
+        display: block;
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .detail-copy {
+        color: #4d4d4d;
+        display: block;
+        margin-top: 3px;
+      }
+      .query-footer {
+        align-items: center;
+        border-top: 1px solid var(--line);
+        display: flex;
+        gap: 14px;
+        justify-content: flex-end;
+        margin: 30px -34px -26px;
+        padding: 20px 34px;
+      }
+      .download-button {
+        background: var(--success);
+        color: #fff;
+        min-width: 170px;
+      }
+      .download-button:hover {
+        background: var(--success-dark);
+      }
+      .secondary-button {
+        background: #fff;
+        border: 1px solid var(--line);
+        color: #303030;
+      }
+      @media (max-width: 620px) {
+        body {
+          padding: 23px 20px;
+        }
+        .view-header {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .form-grid,
+        .captcha-grid,
+        .query-grid,
+        .period-controls {
+          grid-template-columns: 1fr;
+        }
+        .query-header {
+          display: block;
+        }
+        .text-button {
+          margin-top: 12px;
+        }
+        .selection-group {
+          gap: 18px;
+        }
+        .query-footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .query-footer button {
+          flex: 1;
+          min-width: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status" role="status" aria-live="polite"></div>
+    <section id="loginView" class="view" aria-labelledby="loginTitle">
+      <header class="view-header">
+        <p class="eyebrow">Hóa đơn điện tử</p>
+        <h1 id="loginTitle">Đăng nhập HĐĐT</h1>
+        <p class="subtitle">
+          Đăng nhập để chọn và tải dữ liệu hóa đơn theo kỳ.
+        </p>
+      </header>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="username">Tên đăng nhập</label
+          ><input id="username" autocomplete="username" inputmode="numeric" />
+        </div>
+        <div class="form-field">
+          <label for="password">Mật khẩu</label
+          ><input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+          />
+        </div>
+      </div>
+      <div class="captcha-grid">
+        <div class="form-field">
+          <span class="section-label">Mã captcha</span>
+          <div class="captcha-box">
+            <img id="captchaImage" alt="Captcha" /><button
+              id="refreshCaptchaButton"
+              class="refresh-button"
+              type="button"
+            >
+              Làm mới
+            </button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="captcha"
+            ><span class="required">*</span> Nhập mã captcha</label
+          ><input
+            id="captcha"
+            autocomplete="off"
+            placeholder="Nhập mã hiển thị"
+          /><input id="captchaKey" type="hidden" />
+        </div>
+      </div>
+      <p class="privacy-note">
+        Captcha và mật khẩu chỉ được dùng cho lần đăng nhập hiện tại; mật khẩu
+        không được lưu.
+      </p>
+      <div class="login-actions">
+        <button id="loginButton" class="login-button" type="button">
+          Đăng nhập
+        </button>
+      </div>
+    </section>
+
+    <section id="queryView" class="view" hidden aria-labelledby="queryTitle">
+      <header class="view-header query-header">
+        <div>
+          <p class="eyebrow">Hóa đơn điện tử</p>
+          <h1 id="queryTitle">Tải hóa đơn từ HĐĐT</h1>
+          <p class="subtitle">
+            Chọn loại hóa đơn và kỳ cần tra cứu. Bảng kê được tải vào Sheet.
+          </p>
+          <p class="signed-in">Đã đăng nhập thành công</p>
+        </div>
+        <button id="showLoginButton" class="text-button" type="button">
+          Đăng nhập lại
+        </button>
+      </header>
+      <div class="query-grid">
+        <div>
+          <span class="section-label">Loại hóa đơn</span>
+          <div
+            class="selection-group"
+            role="radiogroup"
+            aria-label="Loại hóa đơn"
+          >
+            <label class="choice"
+              ><input id="purchase" name="invoiceType" type="radio" checked />
+              Mua vào</label
+            ><label class="choice"
+              ><input id="sold" name="invoiceType" type="radio" /> Bán ra</label
+            >
+          </div>
+        </div>
+        <div>
+          <span class="section-label">Kiểu kỳ</span>
+          <div class="selection-group" role="radiogroup" aria-label="Kiểu kỳ">
+            <label class="choice"
+              ><input name="periodType" type="radio" value="month" />
+              Tháng</label
+            ><label class="choice"
+              ><input name="periodType" type="radio" value="quarter" checked />
+              Quý</label
+            ><label class="choice"
+              ><input name="periodType" type="radio" value="year" /> Năm</label
+            >
+          </div>
+        </div>
+      </div>
+      <div class="period-controls">
+        <div id="monthField" class="period-field" hidden>
+          <label for="periodMonth">Tháng</label
+          ><input id="periodMonth" type="month" />
+        </div>
+        <div id="quarterField" class="period-field">
+          <label for="periodQuarter">Quý</label
+          ><select id="periodQuarter">
+            <option value="1">Quý 1</option>
+            <option value="2">Quý 2</option>
+            <option value="3">Quý 3</option>
+            <option value="4">Quý 4</option>
+          </select>
+        </div>
+        <div id="yearField" class="period-field">
+          <label for="periodYear">Năm</label
+          ><select id="periodYear"></select>
+        </div>
+        <div>
+          <label for="maxInvoices">Tối đa hóa đơn chi tiết/lần tải</label
+          ><input id="maxInvoices" type="number" min="1" max="200" value="50" />
+        </div>
+      </div>
+      <label class="detail-option"
+        ><input id="includeDetails" type="checkbox" /><span
+          ><span class="detail-title"
+            >Tải luôn dữ liệu chi tiết từng hóa đơn</span
+          ><span class="detail-copy"
+            >Hệ thống tải bảng kê trước, sau đó chỉ tải chi tiết các hóa đơn
+            chưa có trong Sheet.</span
+          ></span
+        ></label
+      >
+      <div class="query-footer">
+        <button id="closeDialogButton" class="secondary-button" type="button">
+          Đóng</button
+        ><button id="syncButton" class="download-button" type="button">
+          Tải hóa đơn
+        </button>
+      </div>
+    </section>
+
+    <script>
+      const byId = (id) => document.getElementById(id);
+      let captchaEndpoint = "https://hoadondientu.gdt.gov.vn/api/captcha";
+      let authEndpoint =
+        "https://hoadondientu.gdt.gov.vn/api/security-taxpayer/authenticate";
+      let apiBaseUrl = "https://hoadondientu.gdt.gov.vn/api";
+      let storedMst = "",
+        browserToken = "",
+        todayValue = "";
+      const value = (id) => byId(id).value.trim();
+      const checked = (id) => byId(id).checked;
+      const selected = (name) =>
+        document.querySelector(`input[name="${name}"]:checked`);
+      function setStatus(text, type) {
+        const status = byId("status");
+        status.textContent = text || "";
+        status.className = text ? `is-visible is-${type || "info"}` : "";
+      }
+      function showError(error) {
+        setStatus(
+          "Lỗi: " + (error && error.message ? error.message : error),
+          "error",
+        );
+      }
+      function setBusy(busy) {
+        ["loginButton", "syncButton"].forEach((id) => {
+          byId(id).disabled = busy;
+        });
+      }
+      function showLoginView() {
+        byId("queryView").hidden = true;
+        byId("loginView").hidden = false;
+        setStatus("", "info");
+        if (!byId("captchaKey").value) loadCaptcha();
+      }
+      function showQueryView(message) {
+        byId("loginView").hidden = true;
+        byId("queryView").hidden = false;
+        setStatus(
+          message || "Đăng nhập thành công. Hãy chọn dữ liệu cần tải.",
+          "success",
+        );
+        updatePeriodControls();
+      }
+      function closeDialog() {
+        google.script.host.close();
+      }
+      function hddtRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function")
+          return window.crypto.randomUUID();
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 15) | 64;
+        bytes[8] = (bytes[8] & 63) | 128;
+        const hex = Array.from(bytes, (byte) =>
+          byte.toString(16).padStart(2, "0"),
+        ).join("");
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+      let captchaObjectUrl = "";
+      function clearCaptchaObjectUrl() {
+        if (captchaObjectUrl) {
+          URL.revokeObjectURL(captchaObjectUrl);
+          captchaObjectUrl = "";
+        }
+      }
+      function captchaContentToImageSource(content) {
+        const text = String(content || "").trim();
+        if (!text) return "";
+        if (/^data:image\//i.test(text)) return text;
+        if (/^<svg[\s>]/i.test(text)) {
+          // Apps Script's iframe can reject an SVG data: URL. A same-frame
+          // Blob URL preserves the SVG text and is accepted by its image CSP.
+          clearCaptchaObjectUrl();
+          captchaObjectUrl = URL.createObjectURL(
+            new Blob([text], { type: "image/svg+xml;charset=utf-8" }),
+          );
+          return captchaObjectUrl;
+        }
+        return "data:image/png;base64," + text;
+      }
+      function callServer(method, payload) {
+        return new Promise((resolve, reject) =>
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            [method](payload),
+        );
+      }
+      function renderCaptcha(key, imageData, silent) {
+        if (!key || !imageData)
+          throw new Error("Captcha response thiếu key hoặc content hợp lệ.");
+        const image = byId("captchaImage");
+        image.onload = () => {
+          image.alt = "Captcha đã tải";
+          if (!silent)
+            setStatus(
+              image.naturalWidth > 0
+                ? "Captcha đã sẵn sàng. Nhập mã để đăng nhập."
+                : "Lỗi: trình duyệt không giải mã được ảnh captcha.",
+              image.naturalWidth > 0 ? "info" : "error",
+            );
+        };
+        image.onerror = () => {
+          image.alt = "Captcha không hiển thị được";
+          setStatus(
+            "Lỗi: trình duyệt không hiển thị được dữ liệu ảnh captcha.",
+            "error",
+          );
+        };
+        image.src = imageData;
+        byId("captchaKey").value = key;
+        byId("captcha").value = "";
+      }
+      async function loadCaptcha(silent) {
+        if (!silent) setStatus("Đang lấy captcha…", "info");
+        const image = byId("captchaImage");
+        image.removeAttribute("src");
+        image.alt = "Đang tải captcha";
+        clearCaptchaObjectUrl();
+        byId("captchaKey").value = "";
+        try {
+          // UrlFetchApp is blocked by the GDT host. The Apps Script iframe is
+          // CORS-authorized, so fetch directly here and render the SVG as Blob.
+          const response = await fetch(
+            captchaEndpoint + "?timestamp=" + Date.now(),
+            {
+              method: "GET",
+              headers: {
+                Accept: "application/json, text/plain, */*",
+                "Cache-Control": "no-cache",
+                "request-id": hddtRequestId(),
+              },
+              cache: "no-store",
+              credentials: "include",
+            },
+          );
+          if (!response.ok)
+            throw new Error("Captcha request failed: HTTP " + response.status);
+          const payload = await response.json(),
+            data = payload && payload.data ? payload.data : payload || {};
+          renderCaptcha(
+            String(data.key || data.ckey || data.captchaKey || ""),
+            captchaContentToImageSource(
+              data.content ||
+                data.captcha ||
+                data.captchaImage ||
+                data.image ||
+                data.base64,
+            ),
+            silent,
+          );
+        } catch (error) {
+          showError(error);
+        }
+      }
+      function populatePeriodChoices(today) {
+        const date = today ? new Date(`${today}T00:00:00`) : new Date(),
+          year = date.getFullYear(),
+          month = date.getMonth() + 1;
+        byId("periodMonth").value = `${year}-${String(month).padStart(2, "0")}`;
+        byId("periodQuarter").value = String(Math.floor((month - 1) / 3) + 1);
+        byId("periodYear").innerHTML = "";
+        for (let chosenYear = year; chosenYear >= year - 5; chosenYear--) {
+          const option = document.createElement("option");
+          option.value = String(chosenYear);
+          option.textContent = String(chosenYear);
+          byId("periodYear").appendChild(option);
+        }
+      }
+      function updatePeriodControls() {
+        const period = selected("periodType").value;
+        byId("monthField").hidden = period !== "month";
+        byId("quarterField").hidden = period !== "quarter";
+        byId("yearField").hidden = period === "month";
+      }
+      function isoDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      function getDateRange() {
+        const period = selected("periodType").value;
+        let range;
+        if (period === "month") {
+          const parts = value("periodMonth").split("-");
+          if (parts.length !== 2) return null;
+          const year = Number(parts[0]),
+            month = Number(parts[1]) - 1;
+          range = {
+            from: isoDate(new Date(year, month, 1)),
+            to: isoDate(new Date(year, month + 1, 0)),
+          };
+        } else {
+          const year = Number(value("periodYear"));
+          if (!year) return null;
+          if (period === "year")
+            range = { from: `${year}-01-01`, to: `${year}-12-31` };
+          else {
+            const firstMonth = (Number(value("periodQuarter")) - 1) * 3;
+            range = {
+              from: isoDate(new Date(year, firstMonth, 1)),
+              to: isoDate(new Date(year, firstMonth + 3, 0)),
+            };
+          }
+        }
+        if (todayValue && range.from > todayValue)
+          throw new Error("Không thể tải kỳ bắt đầu sau ngày hiện tại.");
+        if (todayValue && range.to > todayValue) range.to = todayValue;
+        return range;
+      }
+      function extractToken(payload) {
+        if (!payload || typeof payload !== "object") return "";
+        const direct =
+          payload.token ||
+          payload.accessToken ||
+          payload.id_token ||
+          payload.jwt ||
+          payload.bearerToken;
+        if (direct) return String(direct);
+        const nested =
+          payload.data ||
+          payload.result ||
+          payload.obj ||
+          payload.payload ||
+          {};
+        return String(
+          nested.token ||
+            nested.accessToken ||
+            nested.id_token ||
+            nested.jwt ||
+            nested.bearerToken ||
+            "",
+        );
+      }
+      async function login() {
+        if (
+          !value("username") ||
+          !value("password") ||
+          !value("captcha") ||
+          !value("captchaKey")
+        ) {
+          setStatus(
+            "Nhập tên đăng nhập, mật khẩu và mã captcha trước khi đăng nhập.",
+            "error",
+          );
+          return;
+        }
+        setBusy(true);
+        setStatus("Đang đăng nhập HĐĐT…", "info");
+        const username = value("username");
+        try {
+          const response = await fetch(authEndpoint, {
+            method: "POST",
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              "Content-Type": "application/json",
+              "request-id": hddtRequestId(),
+            },
+            cache: "no-store",
+            credentials: "include",
+            body: JSON.stringify({
+              username,
+              password: byId("password").value,
+              ckey: value("captchaKey"),
+              cvalue: value("captcha"),
+            }),
+          });
+          const text = await response.text();
+          let payload = {};
+          try {
+            payload = text ? JSON.parse(text) : {};
+          } catch (_error) {}
+          byId("password").value = "";
+          byId("captcha").value = "";
+          if (!response.ok)
+            throw new Error(
+              (payload &&
+                (payload.message || payload.error || payload.detail)) ||
+                `Đăng nhập bị từ chối: HTTP ${response.status}`,
+            );
+          browserToken = extractToken(payload);
+          if (!browserToken)
+            throw new Error(
+              (payload &&
+                (payload.message || payload.error || payload.detail)) ||
+                "Không nhận được token từ HĐĐT.",
+            );
+          const result = await callServer("hddtUiSaveBrowserLogin", {
+            username,
+            mst: storedMst,
+            token: browserToken,
+          });
+          showQueryView(result.message || "Đăng nhập thành công.");
+        } catch (error) {
+          browserToken = "";
+          showError(error);
+          loadCaptcha(true);
+        } finally {
+          setBusy(false);
+        }
+      }
+      function monthChunks(range) {
+        const chunks = [],
+          cursor = new Date(`${range.from}T00:00:00`),
+          end = new Date(`${range.to}T00:00:00`);
+        cursor.setDate(1);
+        while (cursor <= end) {
+          const start = new Date(cursor),
+            monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+          const from =
+              start < new Date(`${range.from}T00:00:00`)
+                ? new Date(`${range.from}T00:00:00`)
+                : start,
+            to = monthEnd > end ? end : monthEnd;
+          chunks.push({ from: isoDate(from), to: isoDate(to) });
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+        return chunks;
+      }
+      function base64FromBuffer(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunks = [];
+        for (let offset = 0; offset < bytes.length; offset += 0x8000)
+          chunks.push(
+            String.fromCharCode.apply(
+              null,
+              bytes.subarray(offset, offset + 0x8000),
+            ),
+          );
+        return btoa(chunks.join(""));
+      }
+      async function downloadAndImport(category, ttxly, chunk) {
+        const isPos = Number(ttxly) === 8;
+        const endpoint =
+          category === "sold"
+            ? isPos
+              ? "/sco-query/invoices/export-excel"
+              : "/query/invoices/export-excel"
+            : isPos
+              ? "/sco-query/invoices/export-excel-sold"
+              : "/query/invoices/export-excel-sold";
+        const from = chunk.from.split("-").reverse().join("/"),
+          to = chunk.to.split("-").reverse().join("/");
+        const search = `tdlap=ge=${from}T00:00:00;tdlap=le=${to}T23:59:59${category === "purchase" ? `;ttxly==${ttxly}` : ""}`;
+        const params = new URLSearchParams({
+          search,
+          sort: "tdlap:desc,khmshdon:asc,shdon:desc",
+          type: category,
+        });
+        if (!(category === "sold" && isPos)) params.set("size", "50");
+        const response = await fetch(
+          apiBaseUrl + endpoint + "?" + params.toString(),
+          {
+            method: "GET",
+            headers: {
+              Accept:
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream, */*",
+              Authorization: `Bearer ${browserToken}`,
+              "End-Point": "/tra-cuu/tra-cuu-hoa-don",
+              "request-id": hddtRequestId(),
+            },
+            cache: "no-store",
+            credentials: "include",
+          },
+        );
+        if (!response.ok)
+          throw new Error(
+            `${category === "purchase" ? "Mua vào" : "Bán ra"} / ttxly ${ttxly}: HDDT trả HTTP ${response.status}.`,
+          );
+        const type = String(
+          response.headers.get("content-type") || "",
+        ).toLowerCase();
+        if (
+          type.includes("json") ||
+          type.includes("text/") ||
+          type.includes("html")
+        )
+          throw new Error(
+            `${category === "purchase" ? "Mua vào" : "Bán ra"} / ttxly ${ttxly}: HDDT không trả file Excel.`,
+          );
+        return callServer("hddtUiImportSummaryExcel", {
+          category,
+          ttxly,
+          fromDate: chunk.from,
+          toDate: chunk.to,
+          base64: base64FromBuffer(await response.arrayBuffer()),
+        });
+      }
+      async function downloadAndImportDetail(invoice) {
+        const endpoint =
+          Number(invoice.ttxly) === 8
+            ? "/sco-query/invoices/detail"
+            : "/query/invoices/detail";
+        const params = new URLSearchParams({
+          nbmst: invoice.sellerTaxCode,
+          khhdon: invoice.invoiceSymbol,
+          shdon: invoice.invoiceNumber,
+          khmshdon: invoice.formSymbol,
+        });
+        const response = await fetch(
+          apiBaseUrl + endpoint + "?" + params.toString(),
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              Authorization: `Bearer ${browserToken}`,
+              "End-Point": "/tra-cuu/tra-cuu-hoa-don",
+              "request-id": hddtRequestId(),
+            },
+            cache: "no-store",
+            credentials: "include",
+          },
+        );
+        if (!response.ok)
+          throw new Error(
+            `Chi tiết ${invoice.invoiceNumber}: HDDT trả HTTP ${response.status}.`,
+          );
+        return callServer("hddtUiImportDetailPayload", {
+          invoice,
+          payload: await response.text(),
+        });
+      }
+      async function sync() {
+        let dateRange;
+        try {
+          dateRange = getDateRange();
+        } catch (error) {
+          showError(error);
+          return;
+        }
+        if (!browserToken) {
+          setStatus(
+            "Hãy đăng nhập lại trước khi tải. Phiên đang lưu không thể dùng cho trình duyệt an toàn.",
+            "error",
+          );
+          showLoginView();
+          return;
+        }
+        setBusy(true);
+        const categories = checked("purchase")
+          ? ["purchase"]
+          : checked("sold")
+            ? ["sold"]
+            : [];
+        if (!categories.length) {
+          setBusy(false);
+          setStatus("Hãy chọn ít nhất một loại hóa đơn.", "error");
+          return;
+        }
+        const results = [],
+          errors = [],
+          batches = categories.flatMap((category) =>
+            monthChunks(dateRange).flatMap((chunk) =>
+              (category === "purchase" ? [5, 6, 8] : [5, 8]).map((ttxly) => ({
+                category,
+                ttxly,
+                chunk,
+              })),
+            ),
+          );
+        for (let index = 0; index < batches.length; index++) {
+          const batch = batches[index];
+          setStatus(
+            `Đang tải batch ${index + 1}/${batches.length}: ${batch.category === "purchase" ? "mua vào" : "bán ra"}, ttxly ${batch.ttxly}…`,
+            "info",
+          );
+          try {
+            results.push(
+              await downloadAndImport(batch.category, batch.ttxly, batch.chunk),
+            );
+          } catch (error) {
+            errors.push(error && error.message ? error.message : String(error));
+          }
+        }
+        const detailResults = [];
+        if (checked("includeDetails")) {
+          const pending = [];
+          for (const category of categories)
+            pending.push(
+              ...(await callServer("hddtUiGetPendingDetails", {
+                category,
+                dateRange,
+                maxInvoices: value("maxInvoices"),
+              })),
+            );
+          for (let index = 0; index < pending.length; index++) {
+            setStatus(
+              `Đang tải chi tiết ${index + 1}/${pending.length}…`,
+              "info",
+            );
+            try {
+              detailResults.push(await downloadAndImportDetail(pending[index]));
+            } catch (error) {
+              errors.push(
+                error && error.message ? error.message : String(error),
+              );
+            }
+          }
+        }
+        setBusy(false);
+        const fetched = results.reduce(
+            (sum, item) => sum + Number(item.fetched || 0),
+            0,
+          ),
+          fetchedDetails = detailResults.reduce(
+            (sum, item) => sum + Number(item.fetchedInvoices || 0),
+            0,
+          );
+        const capped =
+          todayValue && dateRange.to === todayValue
+            ? ` Kỳ đã được giới hạn đến ${todayValue}.`
+            : "";
+        const detailText = checked("includeDetails")
+          ? ` và ${fetchedDetails} chi tiết`
+          : "";
+        setStatus(
+          errors.length
+            ? `Đã nhập ${fetched} hóa đơn${detailText}, nhưng ${errors.length} batch lỗi.${capped}\n${errors.join("\n")}`
+            : `Hoàn tất: đã nhập ${fetched} hóa đơn${detailText} từ ${batches.length} batch.${capped}`,
+          errors.length ? "error" : "success",
+        );
+      }
+      byId("refreshCaptchaButton").addEventListener("click", () =>
+        loadCaptcha(),
+      );
+      byId("loginButton").addEventListener("click", login);
+      byId("syncButton").addEventListener("click", sync);
+      byId("showLoginButton").addEventListener("click", showLoginView);
+      byId("closeDialogButton").addEventListener("click", closeDialog);
+      document.querySelectorAll('input[name="periodType"]').forEach((input) => {
+        input.addEventListener("change", updatePeriodControls);
+      });
+      google.script.run
+        .withSuccessHandler((state) => {
+          byId("username").value = state.username || "";
+          storedMst = state.mst || "";
+          captchaEndpoint = state.captchaEndpoint || captchaEndpoint;
+          authEndpoint = state.authEndpoint || authEndpoint;
+          apiBaseUrl = state.apiBaseUrl || apiBaseUrl;
+          todayValue = state.today || "";
+          populatePeriodChoices(todayValue);
+          if (state.session.isValid)
+            showQueryView(
+              "Phiên đã lưu còn hiệu lực. Đăng nhập lại trước khi tải để trình duyệt nhận token mới.",
+            );
+          else {
+            showLoginView();
+            loadCaptcha();
+          }
+        })
+        .withFailureHandler(showError)
+        .hddtUiGetState();
+    </script>
+  </body>
+</html>
