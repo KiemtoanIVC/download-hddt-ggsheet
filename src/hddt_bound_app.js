@@ -2,7 +2,7 @@
 function hddtPrepareSheets() {
   hddtEnsureAllSheets();
   SpreadsheetApp.getActive().toast(
-    "Đã sẵn sàng schema HDDT chuẩn hóa: hóa đơn, chi tiết, dòng hàng, đồng bộ và nhật ký.",
+    "Đã sẵn sàng 4 sheet xem dữ liệu: bảng kê và chi tiết mua vào/bán ra.",
     "Hóa đơn điện tử",
     5,
   );
@@ -136,12 +136,10 @@ function hddtUiGetPendingDetails(input) {
   const ttxlySet = new Set(
     (category === "purchase" ? [5, 6, 8] : [5, 8]).map(String),
   );
-  const existing = hddtReadExistingLookupKeySet(HDDT_SHEETS.DETAIL);
-  return hddtReadSheetObjects(HDDT_SHEETS.SUMMARY, HDDT_HEADERS.summary)
-    .filter((row) => String(row.category) === category)
+  return hddtReadSheetObjects(hddtGetSummarySheetByCategory(category), HDDT_HEADERS.summary)
     .filter((row) => ttxlySet.has(String(row.ttxly)))
     .filter((row) => hddtDetailDateMatches(row.invoiceDate, dateRange))
-    .filter((row) => !existing.has(String(row.summaryKey || "").trim()))
+    .filter((row) => !String(row.detailFetchedAt || "").trim())
     .slice(0, maxInvoices)
     .map((row) => ({
       summaryKey: String(row.summaryKey || ""),
@@ -186,37 +184,26 @@ function hddtUiImportDetailPayload(input) {
     throw new Error("Hệ thống đang bận. Vui lòng thử lại sau vài giây.");
   try {
     hddtEnsureAllSheets();
-    const detailKey = `${category}|${ttxly}|${invoiceKey}`;
+    const summary = hddtReadExistingRowsByKey(
+      hddtGetSummarySheetByCategory(category),
+      HDDT_HEADERS.summary,
+      "summaryKey"
+    )[summaryKey];
+    if (!summary) throw new Error("Không tìm thấy hóa đơn gốc để lưu chi tiết.");
     const lines = hddtExtractDetailLines(payload);
-    const detail = {
-      detailKey,
-      summaryKey,
-      invoiceKey,
-      category,
-      ttxly,
-      payload: JSON.stringify(payload),
-      lineCount: lines.length,
-      fetchedAt: hddtNowIso(),
-      updatedAt: hddtNowIso(),
-    };
-    const detailResult = hddtUpsertRows(
-      HDDT_SHEETS.DETAIL,
-      HDDT_HEADERS.detail,
-      "detailKey",
-      [detail],
-    );
     const lineResult = hddtUpsertRows(
-      HDDT_SHEETS.DETAIL_LINE,
+      hddtGetDetailSheetByCategory(category),
       HDDT_HEADERS.detailLine,
       "lineKey",
-      lines.map((line) => hddtEtaxMapDetailLine(line, detail)),
+      lines.map((line) => hddtEtaxMapDetailLine(line, summary)),
     );
+    hddtMarkSummaryDetailFetched(category, summaryKey, lines.length);
     return {
       ok: true,
       fetchedInvoices: 1,
       lines: lines.length,
-      inserted: detailResult.inserted + lineResult.inserted,
-      updated: detailResult.updated + lineResult.updated,
+      inserted: lineResult.inserted,
+      updated: lineResult.updated,
     };
   } finally {
     lock.releaseLock();
@@ -330,12 +317,6 @@ function hddtUiSync(input) {
 }
 
 function hddtMigrateToEtaxSchema() {
-  const ui = SpreadsheetApp.getUi();
-  const answer = ui.alert(
-    "Tái cấu trúc HDDT",
-    "Xóa 5 tab HDDT cũ (bảng kê/chi tiết/nhật ký) để dùng schema mới? Dữ liệu trong các tab cũ sẽ mất.",
-    ui.ButtonSet.YES_NO,
-  );
-  if (answer !== ui.Button.YES) return { ok: false, cancelled: true };
-  return hddtEtaxDeleteLegacySheets();
+  hddtEnsureAllSheets();
+  return { ok: true };
 }

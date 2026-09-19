@@ -357,10 +357,10 @@ function hddtImportSummaryExcelBlob(blob, input) {
     ),
   );
   const upsertResult = hddtUpsertRows(
-    HDDT_SHEETS.SUMMARY,
+    hddtGetSummarySheetByCategory(category),
     HDDT_HEADERS.summary,
     "summaryKey",
-    normalized,
+    hddtPreserveSummaryDetailState(category, normalized),
   );
   return {
     ok: true,
@@ -860,7 +860,7 @@ function hddtSyncSummary(input) {
     const dateRange = (input && input.dateRange) || {};
     const chunks = hddtMonthChunks(dateRange.from, dateRange.to);
 
-    const sheetName = HDDT_SHEETS.SUMMARY;
+    const sheetName = hddtGetSummarySheetByCategory(category);
 
     let totalFetched = 0;
     let totalInserted = 0;
@@ -894,7 +894,7 @@ function hddtSyncSummary(input) {
           sheetName,
           HDDT_HEADERS.summary,
           "summaryKey",
-          normalized,
+          hddtPreserveSummaryDetailState(category, normalized),
         );
         totalFetched += normalized.length;
         totalInserted += upsertResult.inserted;

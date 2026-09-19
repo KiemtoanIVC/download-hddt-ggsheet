@@ -536,6 +536,82 @@ function hddtRequestId() {
   }).join("");
   return "".concat(hex.slice(0, 8), "-").concat(hex.slice(8, 12), "-").concat(hex.slice(12, 16), "-").concat(hex.slice(16, 20), "-").concat(hex.slice(20));
 }
+function hddtDelay(ms) {
+  return new Promise(function (resolve) {
+    return window.setTimeout(resolve, ms);
+  });
+}
+function hddtFetchDetailWithRetry(_x) {
+  return _hddtFetchDetailWithRetry.apply(this, arguments);
+}
+function _hddtFetchDetailWithRetry() {
+  _hddtFetchDetailWithRetry = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(url) {
+    var maxRetries, lastError, attempt, response, _t;
+    return _regenerator().w(function (_context) {
+      while (1) switch (_context.p = _context.n) {
+        case 0:
+          // Ported from etax-manager's requestWithRetry(). GDT intermittently
+          // returns 500 (and can drop the browser request) while rendering an
+          // invoice detail, so a single request is not reliable enough here.
+          maxRetries = 8;
+          lastError = null;
+          attempt = 0;
+        case 1:
+          if (!(attempt <= maxRetries)) {
+            _context.n = 8;
+            break;
+          }
+          _context.p = 2;
+          _context.n = 3;
+          return fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              Authorization: "Bearer ".concat(browserToken),
+              "End-Point": "/tra-cuu/tra-cuu-hoa-don",
+              // Generate a fresh correlation ID on every retry, as GDT
+              // treats it as one request attempt.
+              "request-id": hddtRequestId()
+            },
+            cache: "no-store",
+            credentials: "include"
+          });
+        case 3:
+          response = _context.v;
+          if (!(response.ok || response.status !== 429 && response.status !== 500 || attempt === maxRetries)) {
+            _context.n = 4;
+            break;
+          }
+          return _context.a(2, response);
+        case 4:
+          lastError = new Error("HDDT tr\u1EA3 HTTP ".concat(response.status, "."));
+          _context.n = 6;
+          break;
+        case 5:
+          _context.p = 5;
+          _t = _context.v;
+          lastError = _t;
+          if (!(attempt === maxRetries)) {
+            _context.n = 6;
+            break;
+          }
+          throw _t;
+        case 6:
+          _context.n = 7;
+          return hddtDelay(250 * (attempt + 1));
+        case 7:
+          attempt++;
+          _context.n = 1;
+          break;
+        case 8:
+          throw lastError || new Error("Không thể tải chi tiết từ HDDT.");
+        case 9:
+          return _context.a(2);
+      }
+    }, _callee, null, [[2, 5]]);
+  }));
+  return _hddtFetchDetailWithRetry.apply(this, arguments);
+}
 var captchaObjectUrl = "";
 function clearCaptchaObjectUrl() {
   if (captchaObjectUrl) {
@@ -578,14 +654,14 @@ function renderCaptcha(key, imageData, silent) {
   byId("captchaKey").value = key;
   byId("captcha").value = "";
 }
-function loadCaptcha(_x) {
+function loadCaptcha(_x2) {
   return _loadCaptcha.apply(this, arguments);
 }
 function _loadCaptcha() {
-  _loadCaptcha = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(silent) {
-    var image, response, payload, data, _t;
-    return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
+  _loadCaptcha = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(silent) {
+    var image, response, payload, data, _t2;
+    return _regenerator().w(function (_context2) {
+      while (1) switch (_context2.p = _context2.n) {
         case 0:
           if (!silent) setStatus("Đang lấy captcha…", "info");
           image = byId("captchaImage");
@@ -593,8 +669,8 @@ function _loadCaptcha() {
           image.alt = "Đang tải captcha";
           clearCaptchaObjectUrl();
           byId("captchaKey").value = "";
-          _context.p = 1;
-          _context.n = 2;
+          _context2.p = 1;
+          _context2.n = 2;
           return fetch(captchaEndpoint + "?timestamp=" + Date.now(), {
             method: "GET",
             headers: {
@@ -606,29 +682,29 @@ function _loadCaptcha() {
             credentials: "include"
           });
         case 2:
-          response = _context.v;
+          response = _context2.v;
           if (response.ok) {
-            _context.n = 3;
+            _context2.n = 3;
             break;
           }
           throw new Error("Captcha request failed: HTTP " + response.status);
         case 3:
-          _context.n = 4;
+          _context2.n = 4;
           return response.json();
         case 4:
-          payload = _context.v;
+          payload = _context2.v;
           data = payload && payload.data ? payload.data : payload || {};
           renderCaptcha(String(data.key || data.ckey || data.captchaKey || ""), captchaContentToImageSource(data.content || data.captcha || data.captchaImage || data.image || data.base64), silent);
-          _context.n = 6;
+          _context2.n = 6;
           break;
         case 5:
-          _context.p = 5;
-          _t = _context.v;
-          showError(_t);
+          _context2.p = 5;
+          _t2 = _context2.v;
+          showError(_t2);
         case 6:
-          return _context.a(2);
+          return _context2.a(2);
       }
-    }, _callee, null, [[1, 5]]);
+    }, _callee2, null, [[1, 5]]);
   }));
   return _loadCaptcha.apply(this, arguments);
 }
@@ -696,23 +772,23 @@ function login() {
   return _login.apply(this, arguments);
 }
 function _login() {
-  _login = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-    var username, response, text, payload, result, _t2;
-    return _regenerator().w(function (_context2) {
-      while (1) switch (_context2.p = _context2.n) {
+  _login = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+    var username, response, text, payload, result, _t3;
+    return _regenerator().w(function (_context3) {
+      while (1) switch (_context3.p = _context3.n) {
         case 0:
           if (!(!value("username") || !value("password") || !value("captcha") || !value("captchaKey"))) {
-            _context2.n = 1;
+            _context3.n = 1;
             break;
           }
           setStatus("Nhập tên đăng nhập, mật khẩu và mã captcha trước khi đăng nhập.", "error");
-          return _context2.a(2);
+          return _context3.a(2);
         case 1:
           setBusy(true);
           setStatus("Đang đăng nhập HĐĐT…", "info");
           username = value("username");
-          _context2.p = 2;
-          _context2.n = 3;
+          _context3.p = 2;
+          _context3.n = 3;
           return fetch(authEndpoint, {
             method: "POST",
             headers: {
@@ -730,11 +806,11 @@ function _login() {
             })
           });
         case 3:
-          response = _context2.v;
-          _context2.n = 4;
+          response = _context3.v;
+          _context3.n = 4;
           return response.text();
         case 4:
-          text = _context2.v;
+          text = _context3.v;
           payload = {};
           try {
             payload = text ? JSON.parse(text) : {};
@@ -742,43 +818,43 @@ function _login() {
           byId("password").value = "";
           byId("captcha").value = "";
           if (response.ok) {
-            _context2.n = 5;
+            _context3.n = 5;
             break;
           }
           throw new Error(payload && (payload.message || payload.error || payload.detail) || "\u0110\u0103ng nh\u1EADp b\u1ECB t\u1EEB ch\u1ED1i: HTTP ".concat(response.status));
         case 5:
           browserToken = extractToken(payload);
           if (browserToken) {
-            _context2.n = 6;
+            _context3.n = 6;
             break;
           }
           throw new Error(payload && (payload.message || payload.error || payload.detail) || "Không nhận được token từ HĐĐT.");
         case 6:
-          _context2.n = 7;
+          _context3.n = 7;
           return callServer("hddtUiSaveBrowserLogin", {
             username: username,
             mst: storedMst,
             token: browserToken
           });
         case 7:
-          result = _context2.v;
+          result = _context3.v;
           showQueryView(result.message || "Đăng nhập thành công.");
-          _context2.n = 9;
+          _context3.n = 9;
           break;
         case 8:
-          _context2.p = 8;
-          _t2 = _context2.v;
+          _context3.p = 8;
+          _t3 = _context3.v;
           browserToken = "";
-          showError(_t2);
+          showError(_t3);
           loadCaptcha(true);
         case 9:
-          _context2.p = 9;
+          _context3.p = 9;
           setBusy(false);
-          return _context2.f(9);
+          return _context3.f(9);
         case 10:
-          return _context2.a(2);
+          return _context3.a(2);
       }
-    }, _callee2, null, [[2, 8, 9, 10]]);
+    }, _callee3, null, [[2, 8, 9, 10]]);
   }));
   return _login.apply(this, arguments);
 }
@@ -806,14 +882,14 @@ function base64FromBuffer(buffer) {
   for (var offset = 0; offset < bytes.length; offset += 0x8000) chunks.push(String.fromCharCode.apply(null, bytes.subarray(offset, offset + 0x8000)));
   return btoa(chunks.join(""));
 }
-function downloadAndImport(_x2, _x3, _x4) {
+function downloadAndImport(_x3, _x4, _x5) {
   return _downloadAndImport.apply(this, arguments);
 }
 function _downloadAndImport() {
-  _downloadAndImport = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(category, ttxly, chunk) {
-    var isPos, endpoint, from, to, search, params, response, type, _t3, _t4, _t5, _t6, _t7, _t8, _t9;
-    return _regenerator().w(function (_context3) {
-      while (1) switch (_context3.n) {
+  _downloadAndImport = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(category, ttxly, chunk) {
+    var isPos, endpoint, from, to, search, params, response, type, _t4, _t5, _t6, _t7, _t8, _t9, _t0;
+    return _regenerator().w(function (_context4) {
+      while (1) switch (_context4.n) {
         case 0:
           isPos = Number(ttxly) === 8;
           endpoint = category === "sold" ? isPos ? "/sco-query/invoices/export-excel" : "/query/invoices/export-excel" : isPos ? "/sco-query/invoices/export-excel-sold" : "/query/invoices/export-excel-sold";
@@ -825,76 +901,11 @@ function _downloadAndImport() {
             type: category
           });
           if (!(category === "sold" && isPos)) params.set("size", "50");
-          _context3.n = 1;
-          return fetch(apiBaseUrl + endpoint + "?" + params.toString(), {
-            method: "GET",
-            headers: {
-              Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream, */*",
-              Authorization: "Bearer ".concat(browserToken),
-              "End-Point": "/tra-cuu/tra-cuu-hoa-don",
-              "request-id": hddtRequestId()
-            },
-            cache: "no-store",
-            credentials: "include"
-          });
-        case 1:
-          response = _context3.v;
-          if (response.ok) {
-            _context3.n = 2;
-            break;
-          }
-          throw new Error("".concat(category === "purchase" ? "Mua vào" : "Bán ra", " / ttxly ").concat(ttxly, ": HDDT tr\u1EA3 HTTP ").concat(response.status, "."));
-        case 2:
-          type = String(response.headers.get("content-type") || "").toLowerCase();
-          if (!(type.includes("json") || type.includes("text/") || type.includes("html"))) {
-            _context3.n = 3;
-            break;
-          }
-          throw new Error("".concat(category === "purchase" ? "Mua vào" : "Bán ra", " / ttxly ").concat(ttxly, ": HDDT kh\xF4ng tr\u1EA3 file Excel."));
-        case 3:
-          _t3 = callServer;
-          _t4 = category;
-          _t5 = ttxly;
-          _t6 = chunk.from;
-          _t7 = chunk.to;
-          _t8 = base64FromBuffer;
-          _context3.n = 4;
-          return response.arrayBuffer();
-        case 4:
-          _t9 = _t8(_context3.v);
-          return _context3.a(2, _t3("hddtUiImportSummaryExcel", {
-            category: _t4,
-            ttxly: _t5,
-            fromDate: _t6,
-            toDate: _t7,
-            base64: _t9
-          }));
-      }
-    }, _callee3);
-  }));
-  return _downloadAndImport.apply(this, arguments);
-}
-function downloadAndImportDetail(_x5) {
-  return _downloadAndImportDetail.apply(this, arguments);
-}
-function _downloadAndImportDetail() {
-  _downloadAndImportDetail = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(invoice) {
-    var endpoint, params, response, _t0, _t1, _t10;
-    return _regenerator().w(function (_context4) {
-      while (1) switch (_context4.n) {
-        case 0:
-          endpoint = Number(invoice.ttxly) === 8 ? "/sco-query/invoices/detail" : "/query/invoices/detail";
-          params = new URLSearchParams({
-            nbmst: invoice.sellerTaxCode,
-            khhdon: invoice.invoiceSymbol,
-            shdon: invoice.invoiceNumber,
-            khmshdon: invoice.formSymbol
-          });
           _context4.n = 1;
           return fetch(apiBaseUrl + endpoint + "?" + params.toString(), {
             method: "GET",
             headers: {
-              Accept: "application/json, text/plain, */*",
+              Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream, */*",
               Authorization: "Bearer ".concat(browserToken),
               "End-Point": "/tra-cuu/tra-cuu-hoa-don",
               "request-id": hddtRequestId()
@@ -908,20 +919,75 @@ function _downloadAndImportDetail() {
             _context4.n = 2;
             break;
           }
-          throw new Error("Chi ti\u1EBFt ".concat(invoice.invoiceNumber, ": HDDT tr\u1EA3 HTTP ").concat(response.status, "."));
+          throw new Error("".concat(category === "purchase" ? "Mua vào" : "Bán ra", " / ttxly ").concat(ttxly, ": HDDT tr\u1EA3 HTTP ").concat(response.status, "."));
         case 2:
-          _t0 = callServer;
-          _t1 = invoice;
-          _context4.n = 3;
-          return response.text();
+          type = String(response.headers.get("content-type") || "").toLowerCase();
+          if (!(type.includes("json") || type.includes("text/") || type.includes("html"))) {
+            _context4.n = 3;
+            break;
+          }
+          throw new Error("".concat(category === "purchase" ? "Mua vào" : "Bán ra", " / ttxly ").concat(ttxly, ": HDDT kh\xF4ng tr\u1EA3 file Excel."));
         case 3:
-          _t10 = _context4.v;
-          return _context4.a(2, _t0("hddtUiImportDetailPayload", {
-            invoice: _t1,
-            payload: _t10
+          _t4 = callServer;
+          _t5 = category;
+          _t6 = ttxly;
+          _t7 = chunk.from;
+          _t8 = chunk.to;
+          _t9 = base64FromBuffer;
+          _context4.n = 4;
+          return response.arrayBuffer();
+        case 4:
+          _t0 = _t9(_context4.v);
+          return _context4.a(2, _t4("hddtUiImportSummaryExcel", {
+            category: _t5,
+            ttxly: _t6,
+            fromDate: _t7,
+            toDate: _t8,
+            base64: _t0
           }));
       }
     }, _callee4);
+  }));
+  return _downloadAndImport.apply(this, arguments);
+}
+function downloadAndImportDetail(_x6) {
+  return _downloadAndImportDetail.apply(this, arguments);
+}
+function _downloadAndImportDetail() {
+  _downloadAndImportDetail = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(invoice) {
+    var endpoint, params, response, _t1, _t10, _t11;
+    return _regenerator().w(function (_context5) {
+      while (1) switch (_context5.n) {
+        case 0:
+          endpoint = Number(invoice.ttxly) === 8 ? "/sco-query/invoices/detail" : "/query/invoices/detail";
+          params = new URLSearchParams({
+            nbmst: invoice.sellerTaxCode,
+            khhdon: invoice.invoiceSymbol,
+            shdon: invoice.invoiceNumber,
+            khmshdon: invoice.formSymbol
+          });
+          _context5.n = 1;
+          return hddtFetchDetailWithRetry(apiBaseUrl + endpoint + "?" + params.toString());
+        case 1:
+          response = _context5.v;
+          if (response.ok) {
+            _context5.n = 2;
+            break;
+          }
+          throw new Error("Chi ti\u1EBFt ".concat(invoice.invoiceNumber, ": HDDT tr\u1EA3 HTTP ").concat(response.status, "."));
+        case 2:
+          _t1 = callServer;
+          _t10 = invoice;
+          _context5.n = 3;
+          return response.text();
+        case 3:
+          _t11 = _context5.v;
+          return _context5.a(2, _t1("hddtUiImportDetailPayload", {
+            invoice: _t10,
+            payload: _t11
+          }));
+      }
+    }, _callee5);
   }));
   return _downloadAndImportDetail.apply(this, arguments);
 }
@@ -929,38 +995,38 @@ function sync() {
   return _sync.apply(this, arguments);
 }
 function _sync() {
-  _sync = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
-    var dateRange, categories, results, errors, batches, index, batch, detailResults, pending, _iterator, _step, category, _index, fetched, fetchedDetails, capped, detailText, _t11, _t12, _t13, _t14, _t15, _t16, _t17, _t18, _t19;
-    return _regenerator().w(function (_context5) {
-      while (1) switch (_context5.p = _context5.n) {
+  _sync = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    var dateRange, categories, results, errors, batches, index, batch, detailResults, pending, _iterator, _step, category, _index, fetched, fetchedDetails, capped, detailText, _t12, _t13, _t14, _t15, _t16, _t17, _t18, _t19, _t20;
+    return _regenerator().w(function (_context6) {
+      while (1) switch (_context6.p = _context6.n) {
         case 0:
-          _context5.p = 0;
+          _context6.p = 0;
           dateRange = getDateRange();
-          _context5.n = 2;
+          _context6.n = 2;
           break;
         case 1:
-          _context5.p = 1;
-          _t11 = _context5.v;
-          showError(_t11);
-          return _context5.a(2);
+          _context6.p = 1;
+          _t12 = _context6.v;
+          showError(_t12);
+          return _context6.a(2);
         case 2:
           if (browserToken) {
-            _context5.n = 3;
+            _context6.n = 3;
             break;
           }
           setStatus("Hãy đăng nhập lại trước khi tải. Phiên đang lưu không thể dùng cho trình duyệt an toàn.", "error");
           showLoginView();
-          return _context5.a(2);
+          return _context6.a(2);
         case 3:
           setBusy(true);
           categories = checked("purchase") ? ["purchase"] : checked("sold") ? ["sold"] : [];
           if (categories.length) {
-            _context5.n = 4;
+            _context6.n = 4;
             break;
           }
           setBusy(false);
           setStatus("Hãy chọn ít nhất một loại hóa đơn.", "error");
-          return _context5.a(2);
+          return _context6.a(2);
         case 4:
           results = [], errors = [], batches = categories.flatMap(function (category) {
             return monthChunks(dateRange).flatMap(function (chunk) {
@@ -976,93 +1042,100 @@ function _sync() {
           index = 0;
         case 5:
           if (!(index < batches.length)) {
-            _context5.n = 10;
+            _context6.n = 10;
             break;
           }
           batch = batches[index];
           setStatus("\u0110ang t\u1EA3i batch ".concat(index + 1, "/").concat(batches.length, ": ").concat(batch.category === "purchase" ? "mua vào" : "bán ra", ", ttxly ").concat(batch.ttxly, "\u2026"), "info");
-          _context5.p = 6;
-          _t12 = results;
-          _context5.n = 7;
+          _context6.p = 6;
+          _t13 = results;
+          _context6.n = 7;
           return downloadAndImport(batch.category, batch.ttxly, batch.chunk);
         case 7:
-          _t12.push.call(_t12, _context5.v);
-          _context5.n = 9;
+          _t13.push.call(_t13, _context6.v);
+          _context6.n = 9;
           break;
         case 8:
-          _context5.p = 8;
-          _t13 = _context5.v;
-          errors.push(_t13 && _t13.message ? _t13.message : String(_t13));
+          _context6.p = 8;
+          _t14 = _context6.v;
+          errors.push(_t14 && _t14.message ? _t14.message : String(_t14));
         case 9:
           index++;
-          _context5.n = 5;
+          _context6.n = 5;
           break;
         case 10:
           detailResults = [];
           if (!checked("includeDetails")) {
-            _context5.n = 24;
+            _context6.n = 25;
             break;
           }
           pending = [];
           _iterator = _createForOfIteratorHelper(categories);
-          _context5.p = 11;
+          _context6.p = 11;
           _iterator.s();
         case 12:
           if ((_step = _iterator.n()).done) {
-            _context5.n = 15;
+            _context6.n = 15;
             break;
           }
           category = _step.value;
-          _t14 = pending.push;
-          _t15 = pending;
-          _t16 = _toConsumableArray;
-          _context5.n = 13;
+          _t15 = pending.push;
+          _t16 = pending;
+          _t17 = _toConsumableArray;
+          _context6.n = 13;
           return callServer("hddtUiGetPendingDetails", {
             category: category,
             dateRange: dateRange,
             maxInvoices: value("maxInvoices")
           });
         case 13:
-          _t14.apply.call(_t14, _t15, _t16(_context5.v));
+          _t15.apply.call(_t15, _t16, _t17(_context6.v));
         case 14:
-          _context5.n = 12;
+          _context6.n = 12;
           break;
         case 15:
-          _context5.n = 17;
+          _context6.n = 17;
           break;
         case 16:
-          _context5.p = 16;
-          _t17 = _context5.v;
-          _iterator.e(_t17);
+          _context6.p = 16;
+          _t18 = _context6.v;
+          _iterator.e(_t18);
         case 17:
-          _context5.p = 17;
+          _context6.p = 17;
           _iterator.f();
-          return _context5.f(17);
+          return _context6.f(17);
         case 18:
           _index = 0;
         case 19:
           if (!(_index < pending.length)) {
-            _context5.n = 24;
+            _context6.n = 25;
             break;
           }
           setStatus("\u0110ang t\u1EA3i chi ti\u1EBFt ".concat(_index + 1, "/").concat(pending.length, "\u2026"), "info");
-          _context5.p = 20;
-          _t18 = detailResults;
-          _context5.n = 21;
+          _context6.p = 20;
+          _t19 = detailResults;
+          _context6.n = 21;
           return downloadAndImportDetail(pending[_index]);
         case 21:
-          _t18.push.call(_t18, _context5.v);
-          _context5.n = 23;
+          _t19.push.call(_t19, _context6.v);
+          _context6.n = 23;
           break;
         case 22:
-          _context5.p = 22;
-          _t19 = _context5.v;
-          errors.push(_t19 && _t19.message ? _t19.message : String(_t19));
+          _context6.p = 22;
+          _t20 = _context6.v;
+          errors.push(_t20 && _t20.message ? _t20.message : String(_t20));
         case 23:
-          _index++;
-          _context5.n = 19;
-          break;
+          if (!(_index + 1 < pending.length)) {
+            _context6.n = 24;
+            break;
+          }
+          _context6.n = 24;
+          return hddtDelay(700);
         case 24:
+          _index++;
+          _context6.n = 19;
+          break;
+        case 25:
           setBusy(false);
           fetched = results.reduce(function (sum, item) {
             return sum + Number(item.fetched || 0);
@@ -1072,10 +1145,10 @@ function _sync() {
           capped = todayValue && dateRange.to === todayValue ? " K\u1EF3 \u0111\xE3 \u0111\u01B0\u1EE3c gi\u1EDBi h\u1EA1n \u0111\u1EBFn ".concat(todayValue, ".") : "";
           detailText = checked("includeDetails") ? " v\xE0 ".concat(fetchedDetails, " chi ti\u1EBFt") : "";
           setStatus(errors.length ? "\u0110\xE3 nh\u1EADp ".concat(fetched, " h\xF3a \u0111\u01A1n").concat(detailText, ", nh\u01B0ng ").concat(errors.length, " batch l\u1ED7i.").concat(capped, "\n").concat(errors.join("\n")) : "Ho\xE0n t\u1EA5t: \u0111\xE3 nh\u1EADp ".concat(fetched, " h\xF3a \u0111\u01A1n").concat(detailText, " t\u1EEB ").concat(batches.length, " batch.").concat(capped), errors.length ? "error" : "success");
-        case 25:
-          return _context5.a(2);
+        case 26:
+          return _context6.a(2);
       }
-    }, _callee5, null, [[20, 22], [11, 16, 17, 18], [6, 8], [0, 1]]);
+    }, _callee6, null, [[20, 22], [11, 16, 17, 18], [6, 8], [0, 1]]);
   }));
   return _sync.apply(this, arguments);
 }

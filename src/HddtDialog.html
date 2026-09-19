@@ -525,6 +525,49 @@
         ).join("");
         return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
       }
+      function hddtDelay(ms) {
+        return new Promise((resolve) => window.setTimeout(resolve, ms));
+      }
+      async function hddtFetchDetailWithRetry(url) {
+        // Ported from etax-manager's requestWithRetry(). GDT intermittently
+        // returns 500 (and can drop the browser request) while rendering an
+        // invoice detail, so a single request is not reliable enough here.
+        const maxRetries = 8;
+        let lastError = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const response = await fetch(url, {
+              method: "GET",
+              headers: {
+                Accept: "application/json, text/plain, */*",
+                Authorization: `Bearer ${browserToken}`,
+                "End-Point": "/tra-cuu/tra-cuu-hoa-don",
+                // Generate a fresh correlation ID on every retry, as GDT
+                // treats it as one request attempt.
+                "request-id": hddtRequestId(),
+              },
+              cache: "no-store",
+              credentials: "include",
+            });
+            if (
+              response.ok ||
+              (response.status !== 429 && response.status !== 500) ||
+              attempt === maxRetries
+            ) {
+              return response;
+            }
+            lastError = new Error(`HDDT trả HTTP ${response.status}.`);
+          } catch (error) {
+            lastError = error;
+            if (attempt === maxRetries) throw error;
+          }
+          // etax-manager uses incremental backoff for the same transient
+          // upstream errors. It prevents the next attempt from immediately
+          // hitting the still-busy GDT service.
+          await hddtDelay(250 * (attempt + 1));
+        }
+        throw lastError || new Error("Không thể tải chi tiết từ HDDT.");
+      }
       let captchaObjectUrl = "";
       function clearCaptchaObjectUrl() {
         if (captchaObjectUrl) {
@@ -864,19 +907,8 @@
           shdon: invoice.invoiceNumber,
           khmshdon: invoice.formSymbol,
         });
-        const response = await fetch(
+        const response = await hddtFetchDetailWithRetry(
           apiBaseUrl + endpoint + "?" + params.toString(),
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json, text/plain, */*",
-              Authorization: `Bearer ${browserToken}`,
-              "End-Point": "/tra-cuu/tra-cuu-hoa-don",
-              "request-id": hddtRequestId(),
-            },
-            cache: "no-store",
-            credentials: "include",
-          },
         );
         if (!response.ok)
           throw new Error(
@@ -962,6 +994,9 @@
                 error && error.message ? error.message : String(error),
               );
             }
+            // Match etax-manager's paced, sequential detail fetches. GDT can
+            // reject otherwise-valid detail calls if they arrive back-to-back.
+            if (index + 1 < pending.length) await hddtDelay(700);
           }
         }
         setBusy(false);

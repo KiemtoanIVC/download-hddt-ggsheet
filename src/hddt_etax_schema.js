@@ -71,7 +71,10 @@ function hddtEtaxParseWorkbookRows(matrix) {
   const rows = Array.isArray(matrix) ? matrix : [];
   const headerIndex = rows.findIndex((row) => {
     const fields = (Array.isArray(row) ? row : []).map(hddtEtaxNormalizeText);
-    return fields.indexOf("stt") >= 0 && fields.indexOf("so hoa don") >= 0;
+    // Keep this in sync with etax-manager's parseWorkbookRows():
+    // hddtEtaxNormalizeText removes spaces and diacritics, so
+    // "Số hóa đơn" becomes "sohoadon" (not "so hoa don").
+    return fields.indexOf("stt") >= 0 && fields.indexOf("sohoadon") >= 0;
   });
   if (headerIndex < 0) throw new Error("Không tìm thấy dòng tiêu đề bảng kê HDDT trong file Excel.");
   const headers = rows[headerIndex].map((value, index) => hddtEtaxText(value) || `COLUMN_${index + 1}`);
@@ -109,23 +112,22 @@ function hddtEtaxMapSummary(record, meta, headers) {
   const summaryKey = [meta.category, meta.ttxly, invoiceKey, monthLabel || "unknown"].join("|");
   const checkResult = hddtEtaxText(hddtEtaxPick(record, ["Kết quả kiểm tra hóa đơn", "Kết quả kiểm tra"]));
   const counterpartyTaxCode = meta.category === "purchase" ? sellerTaxCode : buyerTaxCode;
+  const counterpartyName = meta.category === "purchase"
+    ? hddtEtaxText(hddtEtaxPick(record, ["Tên người bán/Tên người xuất hàng", "Tên người bán", "Tên người xuất hàng"]))
+    : hddtEtaxText(hddtEtaxPick(record, ["Tên người mua/Tên người nhận hàng", "Tên người mua", "Tên người nhận hàng"]));
   const counterparty = hddtEtaxCounterpartyStatus(counterpartyTaxCode, checkResult);
   const now = hddtNowIso();
   return {
-    summaryKey, invoiceKey, category: meta.category, ttxly: meta.ttxly,
-    fromDate: meta.fromDate, toDate: meta.toDate, monthLabel, downloadMonth: hddtEtaxMonthLabel(meta.fromDate),
-    stt: hddtEtaxNumber(hddtEtaxPick(record, ["STT"])), formSymbol, invoiceSymbol, invoiceNumber, invoiceDate,
-    sellerTaxCode, sellerName: hddtEtaxText(hddtEtaxPick(record, ["Tên người bán/Tên người xuất hàng", "Tên người bán", "Tên người xuất hàng"])),
-    sellerAddress: hddtEtaxText(hddtEtaxPick(record, ["Địa chỉ người bán"])), buyerTaxCode,
-    buyerName: hddtEtaxText(hddtEtaxPick(record, ["Tên người mua/Tên người nhận hàng", "Tên người mua", "Tên người nhận hàng"])),
-    buyerAddress: hddtEtaxText(hddtEtaxPick(record, ["Địa chỉ người mua"])), buyerIdNo: hddtEtaxText(hddtEtaxPick(record, ["Căn cước công dân", "CCCD"])),
+    category: meta.category,
+    invoiceDate, formSymbol, invoiceSymbol, invoiceNumber, counterpartyTaxCode, counterpartyName,
     totalBeforeTax: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền chưa thuế", "Tổng tiền hàng", "Tiền hàng", "Tổng tiền chưa có thuế GTGT", "Tổng tiền hàng hoá dịch vụ"])),
     totalTax: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền thuế", "Tổng tiền thuế GTGT", "Tổng GTGT", "Tiền thuế GTGT", "Thuế GTGT", "GTGT"])),
-    totalDiscount: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền chiết khấu thương mại"])), totalFee: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền phí"])),
-    totalPayment: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền thanh toán"])), counterpartyTaxCode,
-    counterpartyStatusCode: counterparty.code, counterpartyStatusText: counterparty.text, counterpartyIsHighRisk: counterparty.risk ? "TRUE" : "FALSE",
-    currency: hddtEtaxText(hddtEtaxPick(record, ["Đơn vị tiền tệ"])), exchangeRate: hddtEtaxNumber(hddtEtaxPick(record, ["Tỷ giá"])),
-    invoiceStatus: hddtEtaxText(hddtEtaxPick(record, ["Trạng thái hóa đơn"])), checkResult, sourceHeaders: JSON.stringify(headers), raw: JSON.stringify(record), createdAt: now, updatedAt: now,
+    totalDiscount: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền chiết khấu thương mại"])),
+    totalPayment: hddtEtaxNumber(hddtEtaxPick(record, ["Tổng tiền thanh toán"])),
+    currency: hddtEtaxText(hddtEtaxPick(record, ["Đơn vị tiền tệ"])),
+    invoiceStatus: hddtEtaxText(hddtEtaxPick(record, ["Trạng thái hóa đơn"])),
+    checkResult, counterpartyIsHighRisk: counterparty.risk ? "Có" : "",
+    summaryKey, invoiceKey, ttxly: meta.ttxly, detailFetchedAt: "", detailLineCount: "", sellerTaxCode, updatedAt: now,
   };
 }
 
@@ -148,12 +150,17 @@ function hddtEtaxMapDetailLine(line, detail) {
   const computedTax = tthue !== "" ? tthue : (thtien !== "" && rate !== "" ? Math.round(Math.abs(thtien) * (rate > 1 ? rate : rate * 100) / 100) : "");
   const stable = stt || Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, `${ten}|${thtien}|${rate}`)).slice(0, 12);
   return {
-    lineKey: `${detail.detailKey}|${stable}`, detailKey: detail.detailKey, summaryKey: detail.summaryKey, invoiceKey: detail.invoiceKey, category: detail.category, ttxly: detail.ttxly,
-    stt, tchat, loaiHangHoaDacTrung: hddtEtaxText(hddtGetTtkhacValue(line, "InventoryItemCategoryName") || hddtGetTtkhacValue(line, "InventoryItemCategoryCode")), ten,
+    invoiceDate: detail.invoiceDate,
+    invoiceReference: hddtBuildInvoiceReference(detail),
+    counterpartyTaxCode: detail.counterpartyTaxCode,
+    counterpartyName: detail.counterpartyName,
+    stt, ten,
     dvtinh: hddtEtaxText(hddtExtractField(line, ["dvtinh", "unit", "donViTinh"])), sluong: hddtEtaxNumber(hddtExtractField(line, ["sluong", "quantity", "soLuong"])),
     dgia: hddtEtaxNumber(hddtExtractField(line, ["dgia", "unitPrice", "donGia"])), stckhau: hddtEtaxNumber(hddtExtractField(line, ["stckhau", "discountAmount"])),
-    tsuat: rate, thtien, tthue: computedTax, lineNature: nature, signedAmount: thtien === "" ? "" : Math.abs(thtien) * sign, signedTaxAmount: computedTax === "" ? "" : Math.abs(computedTax) * sign,
-    raw: JSON.stringify(line), updatedAt: hddtNowIso(),
+    tsuat: rate, thtien, tthue: computedTax,
+    lineKey: `${detail.summaryKey}|${stable}`, summaryKey: detail.summaryKey,
+    lineNature: nature, signedAmount: thtien === "" ? "" : Math.abs(thtien) * sign, signedTaxAmount: computedTax === "" ? "" : Math.abs(computedTax) * sign,
+    updatedAt: hddtNowIso(),
   };
 }
 
@@ -173,19 +180,6 @@ function hddtEtaxFinishSyncRun(run, outcome) {
 }
 
 function hddtEtaxDeleteLegacySheets() {
-  const ss = getDatabaseSpreadsheet();
-  const legacyNames = ["Bảng kê mua vào", "Bảng kê bán ra", "Chi tiết mua vào", "Chi tiết bán ra", "Nhật ký HDDT"];
-  let removed = 0;
-  legacyNames.forEach((name) => {
-    const sheet = ss.getSheetByName(name);
-    if (!sheet) return;
-    if (ss.getSheets().length <= 1) ss.insertSheet("HDDT_Tam");
-    ss.deleteSheet(sheet);
-    removed += 1;
-  });
   hddtEnsureAllSheets();
-  const temporary = ss.getSheetByName("HDDT_Tam");
-  if (temporary && temporary.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(temporary);
-  hddtLog("INFO", "schemaMigration", "Đã xóa các tab cấu trúc HDDT cũ", { removed });
-  return { ok: true, removed };
+  return { ok: true };
 }

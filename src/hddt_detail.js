@@ -14,23 +14,12 @@ function hddtResolveDetailTtxlyList(rawTtxly) {
   return [5];
 }
 
-function hddtReadExistingLookupKeySet(detailSheetName) {
+function hddtReadExistingDetailSummaryKeySet(category) {
   const set = new Set();
-  const sheet = hddtGetOrCreateSheet(detailSheetName, HDDT_HEADERS.detail);
-  const keyIndex = HDDT_HEADERS.detail.indexOf("summaryKey");
-  if (keyIndex < 0) return set;
-  const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return set;
-
-  const keys = hddtReadSheetMatrix(detailSheetName, 2, keyIndex + 1, lastRow - 1, 1, {
-    displayValues: false,
-    pad: true,
+  hddtReadSheetObjects(hddtGetSummarySheetByCategory(category), HDDT_HEADERS.summary).forEach((row) => {
+    const key = String(row.summaryKey || "").trim();
+    if (key && String(row.detailFetchedAt || "").trim()) set.add(key);
   });
-  keys.forEach((arr) => {
-    const key = String(arr && arr[0] ? arr[0] : "").trim();
-    if (key) set.add(key);
-  });
-
   return set;
 }
 
@@ -282,15 +271,14 @@ function hddtSyncDetail(input) {
     const maxInvoices = Number((input && input.maxInvoices) || 100);
     const forceRefresh = Boolean(input && input.forceRefresh);
 
-    const summarySheetName = HDDT_SHEETS.SUMMARY;
-    const detailSheetName = HDDT_SHEETS.DETAIL;
+    const summarySheetName = hddtGetSummarySheetByCategory(category);
     const ttxlySet = new Set(ttxlyList.map((x) => String(x)));
     const dateRange = (input && input.dateRange) || {};
     const summaryRows = hddtReadSheetObjects(summarySheetName, HDDT_HEADERS.summary)
       .filter((row) => ttxlySet.has(String(row.ttxly)))
       .filter((row) => hddtDetailDateMatches(row.invoiceDate, dateRange));
 
-    const existingDetailKeySet = forceRefresh ? new Set() : hddtReadExistingLookupKeySet(detailSheetName);
+    const existingDetailKeySet = forceRefresh ? new Set() : hddtReadExistingDetailSummaryKeySet(category);
     const pendingRows = summaryRows.filter((row) => {
       const summaryKey = String(row.summaryKey || "").trim();
       if (!summaryKey) return false;
@@ -320,18 +308,15 @@ function hddtSyncDetail(input) {
         const detailResponse = hddtRequestJson({ method: "get", url, token, retry: { retries: 2, backoffMs: 500 } });
         const payload = detailResponse.json || {};
         const summaryKey = String(invoice.summaryKey || "");
-        const invoiceKey = String(invoice.invoiceKey || "");
-        const detailKey = `${category}|${rowTtxly}|${invoiceKey}`;
         const lines = hddtExtractDetailLines(payload);
         fetchedInvoices += 1;
         if (!lines.length) noLineInvoices += 1;
-        const detail = { detailKey, summaryKey, invoiceKey, category, ttxly: rowTtxly, payload: JSON.stringify(payload), lineCount: lines.length, fetchedAt: hddtNowIso(), updatedAt: hddtNowIso() };
-        const detailResult = hddtUpsertRows(detailSheetName, HDDT_HEADERS.detail, "detailKey", [detail]);
-        const normalizedLines = lines.map((line) => hddtEtaxMapDetailLine(line, detail));
-        const lineResult = hddtUpsertRows(HDDT_SHEETS.DETAIL_LINE, HDDT_HEADERS.detailLine, "lineKey", normalizedLines);
+        const normalizedLines = lines.map((line) => hddtEtaxMapDetailLine(line, invoice));
+        const lineResult = hddtUpsertRows(hddtGetDetailSheetByCategory(category), HDDT_HEADERS.detailLine, "lineKey", normalizedLines);
+        hddtMarkSummaryDetailFetched(category, summaryKey, lines.length);
         lineCount += normalizedLines.length;
-        inserted += detailResult.inserted + lineResult.inserted;
-        updated += detailResult.updated + lineResult.updated;
+        inserted += lineResult.inserted;
+        updated += lineResult.updated;
       } catch (error) {
         failedInvoices += 1;
         const message = String(error && error.message ? error.message : error || "");
